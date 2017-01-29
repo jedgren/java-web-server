@@ -27,3 +27,20 @@ Java comes with a built in web server class that can easily be set up to serve c
   * This is set up the exact same way as the `StatusHandler` was. Same content in the class itself 
   and registered to the `/` address
 
+Now we can see that there is a lot of overlap in logic in the two handlers. 
+To make this more efficient we are going to extract the overlapping lines to a helper class
+
+## Step 4 - Extract overlapping logic to a Helper class
+* Create a package named `helper` next to the `handler` package and create the class `HandlerHelper`
+* Create a `static void` method in `HandlerHelper` named `writeReponse` that take a `String` and an `HttpExchange`
+  * `public static void writeResponse(String response, HttpExchange httpExchange) throws IOException {`
+* Take the overlapping lines from the `StatusHandler` and put it in `HandlerHelper`
+  ```
+  httpExchange.sendResponseHeaders(200, response.length());
+  OutputStream os = httpExchange.getResponseBody();
+  os.write(response.getBytes());
+  os.close();
+* Change the `StatusHandler` and `GreetingHandler` to use the helper
+  * Replace everything except for `String response = "Server is up";` with `HandlerHelper.writeResponse(response, httpExchange);`
+
+  
