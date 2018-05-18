@@ -1,16 +1,15 @@
 package se.enelefant.handler;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import se.enelefant.helper.HandlerHelper;
 
 import java.io.IOException;
 
-public class GreetingHandler implements HttpHandler {
+public class GreetingHandler extends WebServerHandler {
 
     @Override
-    public void handle(HttpExchange httpExchange) throws IOException {
+    @HandlerEndpoint("/")
+    public void handleRequest(HttpExchange httpExchange) throws IOException {
         String response = "Greetings!";
-        HandlerHelper.writeResponse(response, httpExchange);
+        writeResponse(response, httpExchange);
     }
 }

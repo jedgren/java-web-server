@@ -1,16 +1,15 @@
 package se.enelefant.handler;
 
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import se.enelefant.helper.HandlerHelper;
 
 import java.io.IOException;
 
-public class StatusHandler implements HttpHandler {
+public class StatusHandler extends WebServerHandler {
 
     @Override
-    public void handle(HttpExchange httpExchange) throws IOException {
+    @HandlerEndpoint("/status")
+    public void handleRequest(HttpExchange httpExchange) throws IOException {
         String response = "Server is up";
-        HandlerHelper.writeResponse(response, httpExchange);
+        writeResponse(response, httpExchange);
     }
 }
