@@ -1,4 +1,6 @@
-package se.enelefant.handler;
+package se.enelefant.core.annotation;
+
+import se.enelefant.core.enums.RequestMethod;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -8,4 +10,5 @@ public @interface HandlerEndpoint {
 
     String value();
 
+    RequestMethod method() default RequestMethod.ANY;
 }

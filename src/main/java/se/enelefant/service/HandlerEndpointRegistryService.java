@@ -5,16 +5,17 @@ import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import se.enelefant.handler.HandlerEndpoint;
+import se.enelefant.core.annotation.HandlerEndpoint;
+import se.enelefant.core.annotation.ResponseStatus;
+import se.enelefant.core.enums.HttpStatus;
+import se.enelefant.core.enums.RequestMethod;
+import se.enelefant.core.handler.WebServerHandler;
 import se.enelefant.helper.LoggerHelper;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class HandlerEndpointRegistryService {
@@ -27,17 +28,19 @@ public class HandlerEndpointRegistryService {
 
     public void registerEndpoints(HttpServer server) throws Exception {
         logger.info("Registering endpoints...");
-        Map<String, Class<HttpHandler>> endpoints = findEndpoints(new HashMap<>(), "se.enelefant.handler");
+        Map<EndpointMetaData, Class<HttpHandler>> endpoints = findEndpoints(new HashMap<>(), "se.enelefant.handler");
 
         List<Filter> handlerFilters = findHandlerFilters(new ArrayList<>(), "se.enelefant.handler.filter");
 
-        for (String path : endpoints.keySet()) {
-            Class<HttpHandler> httpHandlerClass = endpoints.get(path);
-            HttpContext context = server.createContext(path, httpHandlerClass.newInstance());
+        for (EndpointMetaData endpointMetaData : endpoints.keySet()) {
+            Class<HttpHandler> httpHandlerClass = endpoints.get(endpointMetaData);
+            HttpContext context = server.createContext(endpointMetaData.endpoint, httpHandlerClass.newInstance());
+            context.getAttributes().put(WebServerHandler.ACCEPTED_METHOD_KEY, endpointMetaData.requestMethod);
+            context.getAttributes().put(WebServerHandler.RESPONSE_STATUS_KEY, endpointMetaData.responseStatus);
             for (Filter filter : handlerFilters) {
                 context.getFilters().add(filter);
             }
-            logger.info("Registering " + httpHandlerClass.getSimpleName() + " at endpoint '" + path + "'");
+            logger.info("Registering " + httpHandlerClass.getSimpleName() + ", endpoint = '" + endpointMetaData.endpoint + "', method = '" + endpointMetaData.requestMethod.getStringMethod() + "'");
         }
     }
 
@@ -79,7 +82,7 @@ public class HandlerEndpointRegistryService {
         }
     }
 
-    private Map<String, Class<HttpHandler>> findEndpoints(Map<String, Class<HttpHandler>> endpoints, String scannedPackage) {
+    private Map<EndpointMetaData, Class<HttpHandler>> findEndpoints(Map<EndpointMetaData, Class<HttpHandler>> endpoints, String scannedPackage) {
         String scannedPath = scannedPackage.replace(PKG_SEPARATOR, DIR_SEPARATOR);
         URL scannedUrl = ClassLoader.getSystemClassLoader().getResource(scannedPath);
         if (scannedUrl == null) {
@@ -92,7 +95,7 @@ public class HandlerEndpointRegistryService {
         return endpoints;
     }
 
-    private void findEndpoints(Map<String, Class<HttpHandler>> endpoints, File file, String scannedPackage) {
+    private void findEndpoints(Map<EndpointMetaData, Class<HttpHandler>> endpoints, File file, String scannedPackage) {
         String resource = scannedPackage + PKG_SEPARATOR + file.getName();
         if (file.isDirectory()) {
             for (File child : file.listFiles()) {
@@ -106,8 +109,15 @@ public class HandlerEndpointRegistryService {
                 if (HttpHandler.class.isAssignableFrom(potentialClass)) {
                     for (Method method : potentialClass.getMethods()) {
                         HandlerEndpoint annotation = method.getAnnotation(HandlerEndpoint.class);
+                        ResponseStatus responseStatusAnnotation = method.getAnnotation(ResponseStatus.class);
                         if (annotation != null) {
-                            endpoints.put(annotation.value(), (Class<HttpHandler>) potentialClass);
+                            EndpointMetaData metaData = new EndpointMetaData(annotation.value(), annotation.method());
+                            if (responseStatusAnnotation != null) {
+                                metaData.responseStatus = responseStatusAnnotation.value();
+                            } else {
+                                metaData.responseStatus = HttpStatus.OK;
+                            }
+                            endpoints.put(metaData, (Class<HttpHandler>) potentialClass);
                         }
                     }
                 }
@@ -116,4 +126,28 @@ public class HandlerEndpointRegistryService {
         }
     }
 
+    private class EndpointMetaData {
+        String endpoint;
+        RequestMethod requestMethod;
+        HttpStatus responseStatus;
+
+        public EndpointMetaData(String endpoint, RequestMethod requestMethod) {
+            this.endpoint = endpoint;
+            this.requestMethod = requestMethod;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            EndpointMetaData that = (EndpointMetaData) o;
+            return Objects.equals(endpoint, that.endpoint) &&
+                    requestMethod == that.requestMethod;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(endpoint, requestMethod);
+        }
+    }
 }
