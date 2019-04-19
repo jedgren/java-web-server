@@ -11,6 +11,7 @@ import se.enelefant.core.enums.HttpStatus;
 import se.enelefant.core.enums.RequestMethod;
 import se.enelefant.core.handler.WebServerHandler;
 import se.enelefant.helper.LoggerHelper;
+import se.enelefant.helper.PropertyHelper;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -24,13 +25,13 @@ public class HandlerEndpointRegistryService {
     private static final String PKG_SEPARATOR = ".";
     private static final String CLASS_FILE_SUFFIX = ".class";
     private static final String DIR_SEPARATOR = "/";
-    private static final String BAD_PACKAGE_ERROR = "";
+    private static final String BAD_PACKAGE_ERROR = "Path '%s' is not valid, input was '%s'";
 
     public void registerEndpoints(HttpServer server) throws Exception {
         logger.info("Registering endpoints...");
-        Map<EndpointMetaData, Class<HttpHandler>> endpoints = findEndpoints(new HashMap<>(), "se.enelefant.handler");
+        Map<EndpointMetaData, Class<HttpHandler>> endpoints = findEndpoints(new HashMap<>(), PropertyHelper.getHandlerPackage());
 
-        List<Filter> handlerFilters = findHandlerFilters(new ArrayList<>(), "se.enelefant.handler.filter");
+        List<Filter> handlerFilters = findHandlerFilters(new ArrayList<>(), PropertyHelper.getFilterPackage());
 
         for (EndpointMetaData endpointMetaData : endpoints.keySet()) {
             Class<HttpHandler> httpHandlerClass = endpoints.get(endpointMetaData);

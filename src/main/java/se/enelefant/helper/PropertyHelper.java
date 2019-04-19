@@ -10,4 +10,12 @@ public class PropertyHelper {
         return 8000;
     }
 
+    public static String getHandlerPackage() {
+        return System.getProperty("se.enelefant.web-server.handlerPackage", "se.enelefant.handler");
+    }
+
+    public static String getFilterPackage() {
+        return System.getProperty("se.enelefant.web-server.filterPackage", "se.enelefant.handler.filter");
+    }
+
 }
